@@ -107,11 +107,13 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
 
   for (const p of snapshot.protocols) {
     const isPreToken = p.mcap_usd == null && p.gecko_id == null && p.symbol == null;
-    const n = p.name.toLowerCase();
+    const cat = (p.category ?? '').toLowerCase();
+    const nameLower = p.name.toLowerCase();
     const isExcluded = 
-      /^(binance|coinbase|bybit|kraken|bitget|okx|bitfinex|gemini)/i.test(n) ||
-      /\b(wrapped|staked|staking|bridged|bridge|wbtc|exchange|cex)\b/i.test(n) ||
-      /( v2| 2\.0| v3)$/i.test(n);
+      ['bridge', 'canonical bridge', 'liquid staking', 'liquid restaking', 'restaked btc', 'cex', 'exchange'].some(kw => cat.includes(kw)) ||
+      ['binance', 'coinbase', 'bybit', 'kraken', 'bitget', 'okx', 'bitfinex', 'gemini', 'robinhood'].some(prefix => nameLower.startsWith(prefix)) ||
+      /\b(wrapped|staked|staking|bridged|bridge)\b/i.test(p.name) ||
+      /( v\d+| \d+\.\d+)$/i.test(p.name);
     const onWatchlist = snapshot.watchlist.includes(p.slug);
 
     if (isPreToken && !isExcluded) {
@@ -175,7 +177,7 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
   board.sort((a, b) => b.implied_value_usd - a.implied_value_usd);
   board.forEach((p, i) => p.rank = i + 1);
 
-  liveRows.sort((a, b) => (b.mcap_usd || 0) - (a.mcap_usd || 0));
+  liveRows.sort((a, b) => b.tvl_usd - a.tvl_usd);
 
   const watchlist_covered = board.filter(p => p.is_watchlist).length;
 
